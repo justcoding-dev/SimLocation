@@ -116,8 +116,8 @@ do
     case $t in
         A) latNew=$((lat + step)) ; lonNew=$((lon + step * off / 4)) ; echo right ; update ;;
         B) latNew=$((lat - step)) ; lonNew=$((lon - step * off / 4)) ; echo left ; update ;;
-        C) lonNew=$((lon + step)) ; latNew=$((lat + step * off / 4)) ; echo up ; update ;;
-        D) lonNew=$((lon - step)) ; latNew=$((lat - step * off / 4)); echo down ; update ;;
+        C) lonNew=$((lon + step)) ; latNew=$((lat - step * off / 4)) ; echo up ; update ;;
+        D) lonNew=$((lon - step)) ; latNew=$((lat + step * off / 4)); echo down ; update ;;
 		0) step=1 ; echo Steps: $step ;;
 		1) step=10 ; echo Steps: $step ;;
 		2) step=20 ; echo Steps: $step ;;
