@@ -196,5 +196,4 @@ do
 
    esac
 
-    echo Key pressed: $t
 done
