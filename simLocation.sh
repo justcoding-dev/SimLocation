@@ -25,6 +25,8 @@ step=20
 # Nothing to edit below this line
 #############################################################################
 
+NEWLINE='\n'
+
 # Takes a string of digits and adds a dot at before the fifth column from the right
 addDecimal() {
 	echo $(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$1")
@@ -35,68 +37,57 @@ if [ -f "SimLocation.gpx" ]
 then
 	# Try to read the previous file and extract the last coordinates
 	read -r lat lon <<< $(sed '/lat=/!d' SimLocation.gpx| awk -F "\"" '{print $2 " " $4}' | sed 's/\.//g' | tail -1)
-	echo "Read start position lon $(addDecimal $lon) lat $(addDecimal $lat)"
+	# Remove last digit of coordinates (it's the randomized component)
+	lon=${lon%?}
+	lat=${lat%?}
+	echo "Read start position lat: $(addDecimal $lat) / lon: $(addDecimal $lon)"
 else
 	lat=$initLat
 	lon=$initLon
-	echo "Default start position: lon $(addDecimal $lon) lat $(addDecimal $lat)"
+	echo "Default start position: lat: $(addDecimal $lat) / lon: $(addDecimal $lon)"
 fi
 
-# Define set of variables for new coordinates. Actually these can be removed/replaced with lon/lat
-# if only the new coordinates should be stored in file (as opposed to the last waypoint and the new one)
-latNew=0
-lonNew=0
+# Creates a list of waypoints with an added 6th randomized decimal digit. Xcode will
+# 'walk' the list of waypoints, making some small random movements.
+randomWaypoints() {
 
+	local latOrig=$1
+	local lonOrig=$2
+	local __result=$3
+	local wp=""
+
+   for ((i=1; i<=50; i++))
+   do
+   	read -d '' line << _EOF_
+  <wpt lat=\"$(addDecimal $latOrig)$(($RANDOM % 10))\" lon=\"$(addDecimal $lonOrig)$(($RANDOM % 10))\">
+    <name>WP_$i</name>
+  </wpt>
+_EOF_
+
+	wp="$wp$line"
+   done
+
+   eval $__result="'$wp'"
+
+}
 
 update() {
 
-	# echo "Moving from $(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$lon"), $(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$lat")"
+	local latNew=$1
+	local lonNew=$2
 
-	# The additional sloN/slaN variables are to simulate movement at 
-	# the target position. Looks horrible though, best to just
-	# set the new target coordinates once
+	# echo "Moving from $(addDecimal $lat) / $(addDecimal $lon)"
 
-	# slo1=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$lon")
-	# sla1=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$lat")
+	echo "Moving to $(addDecimal $latNew) / $(addDecimal $lonNew)"
 
-	slo2=$(addDecimal $lonNew)
-	sla2=$(addDecimal $latNew)
-	echo "Moving to $slo2, $sla2"
-
-	# slo3=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$((lonNew + 1))")
-	# sla3=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$latNew")
-
-	# slo4=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$lonNew")
-	# sla4=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$((latNew - 1))")
-
-	# slo5=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$((lonNew - 1))")
-	# sla5=$(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$((latNew + 1))")
-
+	randomWaypoints $latNew $lonNew waypoints
 
 	/bin/cat <<EOF >SimLocation.gpx
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <gpx>
-  <wpt lat="$sla2" lon="$slo2">
-    <name>WP_End</name>
-  </wpt>
+  $waypoints
 </gpx>
 EOF
-
-#  <wpt lat="$sla1" lon="$slo1">
-#    <name>WP_Begin</name>
-#  </wpt>
-#  <wpt lat="$sla2" lon="$slo2">
-#    <name>WP_End</name>
-#  </wpt>
-#  <wpt lat="$sla3" lon="$slo3">
-#    <name>WP_End</name>
-#  </wpt>
-#  <wpt lat="$sla4" lon="$slo4">
-#    <name>WP_End</name>
-#  </wpt>
-#  <wpt lat="$sla5" lon="$slo5">
-#    <name>WP_End</name>
-#  </wpt>
 
 	# You may have to change these menu entries if your Xcode menu
 	# entries are named differently (or in another language)
@@ -148,16 +139,16 @@ do
     case $t in
 
     	# Step right
-        A) latNew=$((lat + step)) ; lonNew=$((lon + step * off / 4)) ; update ;;
+        A) update $((lat + step)) $((lon + step * off / 4)) ;;
 
 		# Step left
-        B) latNew=$((lat - step)) ; lonNew=$((lon - step * off / 4)) ; update ;;
+        B) update $((lat - step)) $((lon - step * off / 4)) ;;
 
 		# Step up
-        C) lonNew=$((lon + step)) ; latNew=$((lat - step * off / 4)) ; update ;;
+        C) update $((lat - step * off / 4)) $((lon + step)) ;;
 
 		# Step down
-        D) lonNew=$((lon - step)) ; latNew=$((lat + step * off / 4)) ; update ;;
+        D) update $((lat + step * off / 4)) $((lon - step)) ;;
 
 		# Adjust step width
 		0) step=1 ; echo Steps: $step ;;
@@ -187,13 +178,14 @@ do
 		o) off=4 ; echo Offset: $off ;;
 
 		# Enter new longitude value
-		k) readValue "lon" $lon lonNew ; latNew=$lat ; update ;;
+		k) readValue "lon" $lon lonTmp ; update $lat $lonTmp ;;
 
 		# Enter new latitude value
-		l) readValue "lat" $lat latNew ; lonNew=$lon ; update ;;
+		l) readValue "lat" $lat latTmp ; update $latTmp $lon ;;
 	
 		x) echo "Done." ; exit 0 ;;
 
    esac
+
 
 done
