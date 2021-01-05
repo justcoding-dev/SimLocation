@@ -139,7 +139,7 @@ do
 	# Introduce jitter of +/- 10% of current step
 	jitMain=$(($RANDOM % (step / 2 + 1) - (step / 4)))
 	jitOff=$(((off + ($RANDOM % 3 - 1)) * step / 4))
-	echo "Jitter main $jitMain offset $jitOff"
+	#echo "Jitter main $jitMain offset $jitOff"
 
     read -r -sn1 t
     case $t in

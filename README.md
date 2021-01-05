@@ -1,5 +1,9 @@
 # SimLocation
- Update simulated location in Xcode to be updated with simple movements
+Update simulated location in Xcode to be updated with simple movements
+
+In case you want to quickly test some location based features of your shiny new app without creating GPX waypoint lists yourself.
+
+Also, if you walk around with your shiny iPhone and pretend to throw imaginary balls at imaginary creatures, feel free to imagine the walking part as well.
 
 # Usage
 
