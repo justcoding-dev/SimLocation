@@ -71,6 +71,9 @@ _EOF_
 
 }
 
+# Update simulator with new location
+# $1 - new latitude
+# $2 - new longitude1
 update() {
 
 	local latNew=$1
@@ -115,19 +118,24 @@ EOF
 }
 
 # Usage: readValue type result
-# type is a string that is displayed in the user query
-# result is the variable that should hold the entered value 
+# $1 - description string, "lon" or "lat"
+# $2 - current value
+# $3 - variable that should hold the entered value (without decimal dot)
 readValue() {
 
 	local __result=$3
 	local current=$(addDecimal $2)
 
-	echo "Enter new value for $1 ((curent: $current, 5 decimal places)"
+	echo "Enter new value for $1 ((curent: $current)"
 
 	local user_input
 	read user_input
 
-	user_input=$(sed 's/\.//g' <<< "$user_input")
+	# Empty string: use current value
+	[ -z "$user_input" ] && user_input=$current
+
+	# Convert to 5 decimal places and remove entered decimal point
+	user_input=$(awk '{printf "%0.5f\n", $1}' <<< "$user_input" | sed 's/\.//g')
 	eval $__result="'$user_input'"
 
 }
@@ -136,37 +144,38 @@ readValue() {
 while true
 do
 
+	offset=$((off * step / 4))
 	# Introduce jitter of +/- 10% of current step
 	jitMain=$(($RANDOM % (step / 2 + 1) - (step / 4)))
-	jitOff=$(((off + ($RANDOM % 3 - 1)) * step / 4))
-	#echo "Jitter main $jitMain offset $jitOff"
-
+	jitOff=$(($RANDOM % (step / 2 + 1) - (step / 4)))
+	echo "Jitter main $jitMain jitOff $jitOff offset $offset"
+    
     read -r -sn1 t
     case $t in
 
     	# Step right
-        A) update $((lat + step + jitMain)) $((lon + jitOff)) ;;
+        A) update $((lat + step + jitMain)) $((lon + offset + jitOff)) ;;
 
 		# Step left
-        B) update $((lat - step + jitMain)) $((lon - jitOff)) ;;
+        B) update $((lat - step + jitMain)) $((lon - offset + jitOff)) ;;
 
 		# Step up
-        C) update $((lat - jitOff)) $((lon + step + jitMain)) ;;
+        C) update $((lat - offset + jitOff)) $((lon + step + jitMain)) ;;
 
 		# Step down
-        D) update $((lat + jitOff)) $((lon - step + jitMain)) ;;
+        D) update $((lat + offset + jitOff)) $((lon - step + jitMain)) ;;
 
 		# Adjust step width
-		0) step=1 ; echo Steps: $step ;;
-		1) step=10 ; echo Steps: $step ;;
-		2) step=20 ; echo Steps: $step ;;
-		3) step=50 ; echo Steps: $step ;; 
-		4) step=100 ; echo Steps: $step ;;
-		5) step=500 ; echo Steps: $step ;;
-		6) step=1000 ; echo Steps: $step ;;
-		7) step=5000 ; echo Steps: $step ;;
-		8) step=10000 ; echo Steps: $step ;;
-		9) step=100000 ; echo Steps: $step ;;
+		1) step=1 ; echo Steps: $step ;;
+		2) step=5 ; echo Steps: $step ;;
+		3) step=10 ; echo Steps: $step ;;
+		4) step=20 ; echo Steps: $step ;; 
+		5) step=50 ; echo Steps: $step ;;
+		6) step=100 ; echo Steps: $step ;;
+		7) step=500 ; echo Steps: $step ;;
+		8) step=1000 ; echo Steps: $step ;;
+		9) step=10000 ; echo Steps: $step ;;
+		0) step=100000 ; echo Steps: $step ;;
 
 		# Adjust stepping angle CCW to n/4 of 45 degrees
 		q) off=-4 ; echo Offset: $off ;;
