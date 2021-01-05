@@ -135,20 +135,26 @@ readValue() {
 # This is the endless loop to read a keypress and act upon it
 while true
 do
+
+	# Introduce jitter of +/- 10% of current step
+	jitMain=$(($RANDOM % (step / 2 + 1) - (step / 4)))
+	jitOff=$(((off + ($RANDOM % 3 - 1)) * step / 4))
+	echo "Jitter main $jitMain offset $jitOff"
+
     read -r -sn1 t
     case $t in
 
     	# Step right
-        A) update $((lat + step)) $((lon + step * off / 4)) ;;
+        A) update $((lat + step + jitMain)) $((lon + jitOff)) ;;
 
 		# Step left
-        B) update $((lat - step)) $((lon - step * off / 4)) ;;
+        B) update $((lat - step + jitMain)) $((lon - jitOff)) ;;
 
 		# Step up
-        C) update $((lat - step * off / 4)) $((lon + step)) ;;
+        C) update $((lat - jitOff)) $((lon + step + jitMain)) ;;
 
 		# Step down
-        D) update $((lat + step * off / 4)) $((lon - step)) ;;
+        D) update $((lat + jitOff)) $((lon - step + jitMain)) ;;
 
 		# Adjust step width
 		0) step=1 ; echo Steps: $step ;;
