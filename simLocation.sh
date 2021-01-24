@@ -27,9 +27,18 @@ step=20
 
 NEWLINE='\n'
 
+locations=()
+
+# locations+=("Origin,677848,5122315")
+
 # Takes a string of digits and adds a dot at before the fifth column from the right
 addDecimal() {
 	echo $(sed 's/\(.*\)\(.\{5\}\)/\1.\2/g' <<< "$1")
+}
+
+loadLocations() {
+	locations=()
+	while read loc; do locations+=($loc); done < locations.txt
 }
 
 # Try to read coordinates from previous file
@@ -140,6 +149,73 @@ readValue() {
 
 }
 
+# Loop: 
+# - display all locations
+# - wait for key
+# - a: add new: ask name, add name, current long.lat to list
+# - d: delete: ask number, delete
+# - g: ask number, set current location
+# - q: quit to main loop
+editLocations() {
+
+	local user_input
+
+	while true;	do
+
+		printf "\nAvailable Locations:\n"
+		for i in "${!locations[@]}"; do 
+			printf "%s\t%s\n" "$i" "${locations[$i]}"
+		done
+
+		printf "Command? (a)dd, (d)elete, (g)o to, e(x)it? "
+	    read -r -sn1 t
+	    case $t in
+		   
+		    a) 	printf "\nEnter name for current location: "
+		       	read user_input
+		       	printf "$user_input\n"
+		       	locations+=("$user_input,$lon,$lat")
+		        printf '%s\n' "${locations[@]}" > locations.txt
+		       	;;
+
+		    d) 	printf "\nEnter index to delete: "
+			   	read user_input
+		       	printf "$user_input\n"
+			   	if [ "$user_input" -ge "${#locations[@]}" ]; then
+			   		echo "Invalid Index"
+			   		continue
+			   	fi
+		   		unset 'locations[$user_input]'
+		    	printf '%s\n' "${locations[@]}" > locations.txt
+	        	loadLocations
+			   	;;
+
+		    g)	printf "\nEnter index to load: "
+		       	read user_input
+		       	printf "$user_input\n"
+		       	local loc=${locations[$user_input]}
+
+		       	# TODO: check if user input is within bounds
+		       	echo "Loading from $loc"
+		       	IFS=',' read -r nam1 lon1 lat1 <<< "${loc}"
+		       	echo "name: $nam1 lon: ${lon1} lat: ${lat1}"
+		       	lon=${lon1}
+		       	lat=${lat1}
+		       	return
+		       	;;
+		 
+		    x) 	printf "\nExiting location editor\n"
+				return ;;
+
+	 	  esac
+
+ 	 done
+
+}
+
+
+loadLocations
+
 # This is the endless loop to read a keypress and act upon it
 while true
 do
@@ -148,7 +224,7 @@ do
 	# Introduce jitter of +/- 10% of current step
 	jitMain=$(($RANDOM % (step / 2 + 1) - (step / 4)))
 	jitOff=$(($RANDOM % (step / 2 + 1) - (step / 4)))
-	echo "Jitter main $jitMain jitOff $jitOff offset $offset"
+	# echo "Jitter main $jitMain jitOff $jitOff offset $offset"
     
     read -r -sn1 t
     case $t in
@@ -198,6 +274,11 @@ do
 		# Enter new latitude value
 		l) readValue "lat" $lat latTmp ; update $latTmp $lon ;;
 	
+	    # Go to locations submenu
+	    j) 	editLocations
+		   	update $((lat)) $((lon))
+			;;
+
 		x) echo "Done." ; exit 0 ;;
 
    esac
